@@ -2,5 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+option('verbs', type: 'feature', value: 'auto',
+       description: 'build and run the tests of urdma_verbs.h, which need libibverbs')
 option('skip-install', type: 'boolean', value: false,
        description: 'as a subproject: install neither the header nor urdma.pc')

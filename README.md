@@ -6,9 +6,10 @@ SPDX-License-Identifier: BSD-3-Clause
 
 # urdma: RDMA from user space, header-only
 
-**This is an exploration.** There is no RDMA code yet, and nothing here is
-settled. The repository records what is being explored and why, and has the
-build, checks, documentation and releases in place for the code to come.
+**This is an exploration.** Nothing here is settled. The repository records
+what is being explored and why. The first code, `urdma_verbs.h`, connects
+reliable-connected queue pairs through libibverbs and RDMA WRITEs between
+them.
 
 urdma is meant to become a header-only C library for moving data with an RDMA
 NIC, in the style of [uPCIe](https://github.com/safl/upcie),

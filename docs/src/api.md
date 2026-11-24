@@ -10,3 +10,6 @@ Generated from the header's doc-comments with Doxygen and Breathe.
 
 ```{doxygenfile} urdma.h
 ```
+
+```{doxygenfile} urdma_verbs.h
+```

@@ -21,6 +21,7 @@ steps:
 - name: build_tools
   run: |
     command -v meson ninja gcc g++ make || (apt-get -qy update && DEBIAN_FRONTEND=noninteractive apt-get -qy install --no-install-recommends meson ninja-build gcc g++ make)
+    test -f /usr/include/infiniband/verbs.h || (apt-get -qy update && DEBIAN_FRONTEND=noninteractive apt-get -qy install --no-install-recommends libibverbs-dev pkg-config)
 
 - name: source_put
   uses: core.put
@@ -32,4 +33,4 @@ steps:
   run: |
     rm -rf /tmp/urdma && mkdir -p /tmp/urdma
     tar xzf /tmp/urdma-src.tar.gz -C /tmp/urdma
-    make -C /tmp/urdma test
+    URDMA_TEST_DEVICE=$(ls /sys/class/infiniband | head -n1) make -C /tmp/urdma test MESON_SETUP_ARGS=-Dverbs=enabled
