@@ -69,7 +69,7 @@ jobs:
   guest:
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/refenv/systems-devenv/host:v0.17.0
+      image: ghcr.io/refenv/systems-devenv/host:v0.18.0
       options: --privileged --ulimit memlock=-1 -v /mnt:/mnt
     steps:
     - name: Grab source
