@@ -21,7 +21,7 @@ meson.override_dependency('urdma', urdma_dep)
 # A parent project that takes urdma as a subproject only to build against it
 # sets skip-install=true, so nothing of urdma lands in its prefix
 if not get_option('skip-install')
-  install_headers('include/urdma.h')
+  install_headers('include/urdma.h', 'include/urdma_verbs.h')
   pkg = import('pkgconfig')
   pkg.generate(
     name: 'urdma',

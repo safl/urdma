@@ -8,8 +8,14 @@ SPDX-License-Identifier: BSD-3-Clause
 
 ## Building and testing
 
-urdma is a single header, `include/urdma.h`. The meson build installs it with
-`urdma.pc`, and compiles its tests as C and as C++:
+urdma is header-only. `include/urdma.h` carries the version, and
+`include/urdma_verbs.h` drives a NIC the kernel drives through libibverbs,
+which a project including it links. The meson build installs both with
+`urdma.pc`, and compiles its tests as C and as C++. The tests of
+`urdma_verbs.h` are built where libibverbs is found, or always with
+`MESON_SETUP_ARGS=-Dverbs=enabled`; on Debian and Ubuntu it comes with
+`libibverbs-dev`. The loopback test runs on the RDMA device that
+`URDMA_TEST_DEVICE` names, such as `ionic_0`, and is skipped when it names none:
 
 ```bash
 make build      # meson setup and compile, in build/
@@ -40,7 +46,8 @@ container that boots it come from
 [systems-devenv](https://github.com/refenv/systems-devenv); the NIC is served
 by rocm-ernic, which the host container carries. The rig, `cijoe/rigs/urdma-nic.toml`,
 gives the guest one NIC whose loopback backend connects queue pairs within the
-guest.
+guest. There, the loopback test connects two queue pairs and RDMA WRITEs between
+them, on the guest's RDMA device, which the guest task names.
 
 ```bash
 make devenv-verify   # start the host container, the guest, and test urdma in it

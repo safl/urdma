@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 BUILD_DIR ?= build
+# Further 'meson setup' options, e.g. -Dverbs=enabled where libibverbs must be found
+MESON_SETUP_ARGS ?=
 # Where source-archive writes urdma-src.tar.gz; tasks/test.yaml takes it from
 # /tmp/artifacts, where devenv-host mounts this
 ARTIFACTS ?= /tmp/artifacts
@@ -41,7 +43,7 @@ help:
 	@echo "  clean       remove $(BUILD_DIR)/ and docs/_build/"
 
 build:
-	meson setup $(BUILD_DIR) || meson setup --reconfigure $(BUILD_DIR)
+	meson setup $(MESON_SETUP_ARGS) $(BUILD_DIR) || meson setup --reconfigure $(MESON_SETUP_ARGS) $(BUILD_DIR)
 	meson compile -C $(BUILD_DIR)
 
 test: build
