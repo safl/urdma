@@ -36,9 +36,11 @@ jobs:
         path: docs/_build/html
         if-no-files-found: error
 
-  # Pushes to main deploy; pull requests and dispatched runs only build
+  # Pushes to main and runs dispatched on main deploy; pull requests only build.
+  # A failed deploy is redone by dispatching a new run: a re-run of the job adds
+  # a second github-pages artifact to the run, which deploy-pages refuses.
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-24.04
     permissions:
