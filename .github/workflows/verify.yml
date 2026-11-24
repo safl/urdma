@@ -98,6 +98,9 @@ jobs:
     - name: Build and test urdma in the guest
       run: make guest-test
 
+    - name: Run urdma-bench and perftest in the guest
+      run: make guest-bench
+
     - name: Show the guest's serial console and the NIC server's log
       if: failure()
       run: |

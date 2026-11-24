@@ -6,12 +6,15 @@
 version_arg = '-DURDMA_TEST_VERSION="@0@"'.format(meson.project_version())
 test('version-c', executable('test_version_c', 'test_version.c', dependencies: urdma_dep,
                              c_args: version_arg))
-# Skipped where there is no RDMA device
-ibverbs_dep = dependency('libibverbs', required: get_option('verbs'))
+# Skipped unless URDMA_TEST_DEVICE names an RDMA device
 if ibverbs_dep.found()
   test('verbs-loopback', executable('test_verbs_loopback', 'test_verbs_loopback.c',
                                     dependencies: [urdma_dep, ibverbs_dep]),
        timeout: 60)
+  foreach workload : ['write-bw', 'write-lat']
+    test('bench-' + workload, find_program('bench_pair.sh'),
+         args: [urdma_bench, workload], is_parallel: false, timeout: 120)
+  endforeach
 endif
 if add_languages('cpp', required: false, native: false)
   test('version-cxx', executable('test_version_cxx', 'test_version_cxx.cpp', dependencies: urdma_dep,
