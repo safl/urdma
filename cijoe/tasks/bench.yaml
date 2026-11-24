@@ -1,0 +1,35 @@
+---
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+doc: |
+  Run urdma-bench and perftest with the same workloads on the target's RDMA device
+
+  Each workload runs as a server and a client on the target, over 127.0.0.1,
+  once with urdma-bench and once with perftest's ib_write_bw or ib_write_lat,
+  with the same size, iterations and depth, and on the GID index urdma-bench
+  picked. urdma-bench verifies the payloads; perftest shows that the same
+  workload runs on the device. On an emulated NIC the bandwidth and latency
+  say nothing about a NIC's performance. Takes the build tasks/test.yaml left
+  in /tmp/urdma; scripts/bench_compare.py runs each pair.
+
+steps:
+- name: perftest
+  run: |
+    command -v ib_write_bw || (apt-get -qy update && DEBIAN_FRONTEND=noninteractive apt-get -qy install --no-install-recommends perftest)
+
+- name: write_bw
+  uses: bench_compare
+  with:
+    workload: write-bw
+    size: 65536
+    iters: 1000
+    depth: 128
+
+- name: write_lat
+  uses: bench_compare
+  with:
+    workload: write-lat
+    size: 2
+    iters: 1000

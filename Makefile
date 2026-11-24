@@ -23,7 +23,7 @@ DEVENV_RUN_ARGS ?=
 
 .DEFAULT_GOAL := help
 .PHONY: help build test consumer install format format-all docs docs-serve bump clean \
-	source-archive guest guest-test devenv-host devenv-verify devenv-down
+	source-archive guest guest-test guest-bench devenv-host devenv-verify devenv-down
 
 help:
 	@echo "urdma:"
@@ -32,9 +32,10 @@ help:
 	@echo "  consumer    build a consumer against an installed urdma and through a wrap"
 	@echo "  guest       start the QEMU guest with RIG=$(RIG), in systems-devenv's host container"
 	@echo "  guest-test  build and test urdma in the running guest"
-	@echo "  devenv-verify  source-archive, guest and guest-test, in the host container"
+	@echo "  guest-bench run urdma-bench and perftest in the guest, after guest-test"
+	@echo "  devenv-verify  source-archive, guest, guest-test and guest-bench, in the host container"
 	@echo "  devenv-down    remove the host container and the guest in it"
-	@echo "  install     install the header and urdma.pc"
+	@echo "  install     install the headers, urdma.pc and urdma-bench"
 	@echo "  format      run the pre-commit hooks on staged changes"
 	@echo "  format-all  run the pre-commit hooks on all files"
 	@echo "  docs        build the HTML documentation into docs/_build/html"
@@ -65,6 +66,10 @@ guest-test:
 	cd cijoe && cijoe tasks/test.yaml --monitor --config configs/guest.toml \
 		--output $(CIJOE_OUTPUT)-test
 
+guest-bench:
+	cd cijoe && cijoe tasks/bench.yaml --monitor --config configs/guest.toml \
+		--output $(CIJOE_OUTPUT)-bench
+
 # DEVENV_HOME keeps the staged guest image between runs
 devenv-host:
 	mkdir -p $(DEVENV_HOME) $(ARTIFACTS)
@@ -74,7 +79,7 @@ devenv-host:
 			-w /root/git/urdma $(DEVENV_IMAGE) sleep infinity
 
 devenv-verify: source-archive devenv-host
-	$(DEVENV_ENGINE) exec $(DEVENV_NAME) make guest guest-test RIG=$(RIG)
+	$(DEVENV_ENGINE) exec $(DEVENV_NAME) make guest guest-test guest-bench RIG=$(RIG)
 
 devenv-down:
 	$(DEVENV_ENGINE) rm -f $(DEVENV_NAME)

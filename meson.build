@@ -31,7 +31,11 @@ if not get_option('skip-install')
   )
 endif
 
-# A project taking urdma through a wrap gets the dependency, not the tests
+# The verbs path, the tools and their tests are built where libibverbs is found
+ibverbs_dep = dependency('libibverbs', required: get_option('verbs'))
+
+# A project taking urdma through a wrap gets the dependency, not the tools or the tests
 if not meson.is_subproject()
+  subdir('tools')
   subdir('tests')
 endif

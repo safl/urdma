@@ -14,8 +14,9 @@ which a project including it links. The meson build installs both with
 `urdma.pc`, and compiles its tests as C and as C++. The tests of
 `urdma_verbs.h` are built where libibverbs is found, or always with
 `MESON_SETUP_ARGS=-Dverbs=enabled`; on Debian and Ubuntu it comes with
-`libibverbs-dev`. The loopback test runs on the RDMA device that
-`URDMA_TEST_DEVICE` names, such as `ionic_0`, and is skipped when it names none:
+`libibverbs-dev`. The loopback test and the urdma-bench tests run on the RDMA
+device that `URDMA_TEST_DEVICE` names, such as `ionic_0`, and are skipped when it
+names none:
 
 ```bash
 make build      # meson setup and compile, in build/
@@ -47,7 +48,8 @@ container that boots it come from
 by rocm-ernic, which the host container carries. The rig, `cijoe/rigs/urdma-nic.toml`,
 gives the guest one NIC whose loopback backend connects queue pairs within the
 guest. There, the loopback test connects two queue pairs and RDMA WRITEs between
-them, on the guest's RDMA device, which the guest task names.
+them, on the guest's RDMA device, which the guest task names. `make guest-bench`
+then runs urdma-bench and perftest with the same workloads in the guest.
 
 ```bash
 make devenv-verify   # start the host container, the guest, and test urdma in it
@@ -59,6 +61,28 @@ podman, add `DEVENV_RUN_ARGS="--group-add keep-groups"` so the container keeps
 the `kvm` group. The staged guest image, about 20 GB with its download, is
 kept in `.devenv/` between runs, or in `DEVENV_HOME` when that is set. CI runs
 the same targets in its `guest` job.
+
+## RDMA WRITE workloads with urdma-bench
+
+`urdma-bench` runs the RDMA WRITE workloads of perftest's `ib_write_bw` and
+`ib_write_lat`, with the same parameters and defaults, between a server and a
+client, and verifies every payload. It is built with the verbs path. A run with
+no host serves one client; the client's size, iterations and depth apply to
+both sides:
+
+```bash
+urdma-bench write-bw -d ionic_0 &                 # server
+urdma-bench write-bw -d ionic_0 -s 4096 127.0.0.1  # client
+urdma-bench write-lat -d ionic_0 &
+urdma-bench write-lat -d ionic_0 127.0.0.1
+```
+
+`write-bw` keeps up to `--tx-depth` WRITEs in flight into as many slots of the
+server's memory, and the server then checks every slot. `write-lat` alternates
+one WRITE each way, checking each payload when it arrives, and reports half the
+round trip, as `ib_write_lat` does. urdma is tested on an emulated NIC only,
+where the bandwidth and latency say nothing about a NIC's performance; there
+the workloads verify that RDMA WRITE moves data correctly.
 
 ## Format and source checks
 
