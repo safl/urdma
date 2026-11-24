@@ -3,15 +3,35 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 BUILD_DIR ?= build
+# Where source-archive writes urdma-src.tar.gz; tasks/test.yaml takes it from
+# /tmp/artifacts, where devenv-host mounts this
+ARTIFACTS ?= /tmp/artifacts
+# The rig the guest boots with, from cijoe/rigs/
+RIG ?= urdma-nic
+CIJOE_OUTPUT ?= cijoe-output
+# The guest is started by systems-devenv's rig scripts, which its host container
+# carries along with QEMU, cijoe and the device servers; devenv-* run there
+DEVENV_IMAGE ?= ghcr.io/refenv/systems-devenv/host:v0.17.0
+DEVENV_ENGINE ?= docker
+DEVENV_NAME ?= urdma-devenv-$(notdir $(CURDIR))
+DEVENV_HOME ?= $(CURDIR)/.devenv
+# Further 'run' options; rootless podman needs '--group-add keep-groups' to
+# keep the kvm group that gives access to /dev/kvm
+DEVENV_RUN_ARGS ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help build test consumer install format format-all docs docs-serve bump clean
+.PHONY: help build test consumer install format format-all docs docs-serve bump clean \
+	source-archive guest guest-test devenv-host devenv-verify devenv-down
 
 help:
 	@echo "urdma:"
 	@echo "  build       meson setup and compile, in $(BUILD_DIR)/"
 	@echo "  test        run the tests"
 	@echo "  consumer    build a consumer against an installed urdma and through a wrap"
+	@echo "  guest       start the QEMU guest with RIG=$(RIG), in systems-devenv's host container"
+	@echo "  guest-test  build and test urdma in the running guest"
+	@echo "  devenv-verify  source-archive, guest and guest-test, in the host container"
+	@echo "  devenv-down    remove the host container and the guest in it"
 	@echo "  install     install the header and urdma.pc"
 	@echo "  format      run the pre-commit hooks on staged changes"
 	@echo "  format-all  run the pre-commit hooks on all files"
@@ -29,6 +49,33 @@ test: build
 
 consumer:
 	tests/meson/check.sh
+
+# The tracked files as they are in the working tree, uncommitted changes included
+source-archive:
+	mkdir -p $(ARTIFACTS)
+	git ls-files -z | tar --null -T - -czf $(ARTIFACTS)/urdma-src.tar.gz
+
+guest:
+	cd cijoe && cijoe tasks/guest.yaml --monitor --config configs/guest.toml \
+		--config rigs/$(RIG).toml --output $(CIJOE_OUTPUT)-guest
+
+guest-test:
+	cd cijoe && cijoe tasks/test.yaml --monitor --config configs/guest.toml \
+		--output $(CIJOE_OUTPUT)-test
+
+# DEVENV_HOME keeps the staged guest image between runs
+devenv-host:
+	mkdir -p $(DEVENV_HOME) $(ARTIFACTS)
+	$(DEVENV_ENGINE) inspect $(DEVENV_NAME) >/dev/null 2>&1 || \
+		$(DEVENV_ENGINE) run -d --name $(DEVENV_NAME) --privileged --ulimit memlock=-1 $(DEVENV_RUN_ARGS) \
+			-v $(DEVENV_HOME):/root -v $(CURDIR):/root/git/urdma -v $(ARTIFACTS):/tmp/artifacts \
+			-w /root/git/urdma $(DEVENV_IMAGE) sleep infinity
+
+devenv-verify: source-archive devenv-host
+	$(DEVENV_ENGINE) exec $(DEVENV_NAME) make guest guest-test RIG=$(RIG)
+
+devenv-down:
+	$(DEVENV_ENGINE) rm -f $(DEVENV_NAME)
 
 install: build
 	meson install -C $(BUILD_DIR)

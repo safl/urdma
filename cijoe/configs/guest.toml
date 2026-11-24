@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+# The QEMU guest urdma is tested in: systems-devenv's guest image, booted by
+# systems-devenv's rig scripts from its host container. The image carries the
+# ionic driver for the emulated RDMA NIC and a kernel with the dma-buf support
+# urdma builds on.
+
+[cijoe]
+default_target = "root"
+
+[cijoe.targets.root.ssh]
+username = "root"
+password = "root"
+hostname = "localhost"
+port = 4200
+
+# The operator account of nosi images, over which root_unlock opens root
+[cijoe.targets.odus.ssh]
+username = "odus"
+password = "odus.321"
+hostname = "localhost"
+port = 4200
+
+[qemu]
+img_bin = "qemu-img"
+default_guest = "urdma"
+default_systemimage = "systems-devenv-guest-x86_64"
+
+[qemu.systems.x86_64]
+bin = "qemu-system-x86_64"
+
+# With a vIOMMU, so the NIC can be handed to vfio-pci
+[qemu.guests.urdma]
+path = "{{ local.env.HOME }}/guests/urdma"
+system_label = "x86_64"
+system_args.kwa = {cpu = "host", smp = 4, m = "4G", accel = "kvm"}
+system_args.raw = """\
+-M "type=q35,kernel_irqchip=split" \
+-device "intel-iommu,pt=on,intremap=on,caching-mode=on" \
+"""
+system_args.tcp_forward = {host = 4200, guest = 22}
+
+[system-imaging.images.systems-devenv-guest-x86_64]
+system_label = "x86_64"
+oras.url = "oras://ghcr.io/refenv/systems-devenv/guest-ubuntu-2610:v0.17.0"
+disk.path = "{{ local.env.HOME }}/system_imaging/disk/systems-devenv-guest-v0.17.0.qcow2"

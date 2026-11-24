@@ -1,0 +1,38 @@
+---
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+doc: |
+  Start the QEMU guest with its rig, from systems-devenv's host container
+
+  Stops a guest left running, stages systems-devenv's guest image, initializes
+  the guest from it and boots it with the rig's devices, then opens root SSH
+  over the image's operator account:
+
+    cijoe tasks/guest.yaml --config configs/guest.toml --config rigs/urdma-nic.toml
+
+steps:
+- name: guest_kill
+  uses: systems_devenv.rig_guest_kill
+  with:
+    guest_name: "{{ config.qemu.default_guest }}"
+
+- name: stage_guest
+  uses: system_imaging.diskimage_from_oras
+  with:
+    pattern: "{{ config.qemu.default_systemimage }}"
+
+- name: guest_initialize
+  uses: qemu.guest_initialize
+  with:
+    guest_name: "{{ config.qemu.default_guest }}"
+    system_image_name: "{{ config.qemu.default_systemimage }}"
+
+- name: guest_start
+  uses: systems_devenv.rig_guest_start
+  with:
+    guest_name: "{{ config.qemu.default_guest }}"
+
+- name: root_unlock
+  uses: systems_devenv.root_unlock

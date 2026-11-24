@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+# urdma-nic: one emulated AMD Pensando ionic NIC, served by rocm-ernic from
+# systems-devenv's host container. The loopback backend connects queue pairs
+# within the guest. See /opt/systems-devenv/cijoe/scripts/rig.py in the host
+# container for the format.
+
+[rig.devices.nic0]
+provider = "vfio-user"
+socket = "{{ local.env.HOME }}/run/vfio-user-urdma-nic0.sock"
+server = "/opt/rocm-ernic/bin/rocm-ernic --socket {socket} --backend loopback --log-level info"

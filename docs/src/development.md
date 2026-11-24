@@ -32,6 +32,27 @@ dependency_names = urdma
 The project then takes `dependency('urdma')`. With
 `-Durdma:skip-install=true`, nothing of urdma is installed into its prefix.
 
+## Testing in a guest with an RDMA NIC
+
+urdma is also built and tested in a QEMU guest with an emulated AMD Pensando
+ionic NIC, so no RDMA hardware is needed. The guest image and the host
+container that boots it come from
+[systems-devenv](https://github.com/refenv/systems-devenv); the NIC is served
+by rocm-ernic, which the host container carries. The rig, `cijoe/rigs/urdma-nic.toml`,
+gives the guest one NIC whose loopback backend connects queue pairs within the
+guest.
+
+```bash
+make devenv-verify   # start the host container, the guest, and test urdma in it
+make devenv-down     # remove the host container and the guest
+```
+
+`make devenv-verify` needs Docker or podman and `/dev/kvm`. With rootless
+podman, add `DEVENV_RUN_ARGS="--group-add keep-groups"` so the container keeps
+the `kvm` group. The staged guest image, about 20 GB with its download, is
+kept in `.devenv/` between runs, or in `DEVENV_HOME` when that is set. CI runs
+the same targets in its `guest` job.
+
 ## Format and source checks
 
 The checks are pre-commit hooks: clang-format for C, YAML formatting,

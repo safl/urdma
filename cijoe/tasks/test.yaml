@@ -1,0 +1,35 @@
+---
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+doc: |
+  Build and test urdma on the target, and check that it has an RDMA device
+
+  Takes the source archive 'make source-archive' writes to
+  /tmp/artifacts/urdma-src.tar.gz, unpacks it on the target and runs 'make
+  test' there. Retargetable: it runs the same on a guest started by
+  tasks/guest.yaml and on a machine reached over SSH.
+
+steps:
+- name: rdma_device
+  run: |
+    uname -r
+    rdma link show
+    test -n "$(ls /sys/class/infiniband)"
+
+- name: build_tools
+  run: |
+    command -v meson ninja gcc g++ make || (apt-get -qy update && DEBIAN_FRONTEND=noninteractive apt-get -qy install --no-install-recommends meson ninja-build gcc g++ make)
+
+- name: source_put
+  uses: core.put
+  with:
+    src: /tmp/artifacts/urdma-src.tar.gz
+    dst: /tmp/urdma-src.tar.gz
+
+- name: test
+  run: |
+    rm -rf /tmp/urdma && mkdir -p /tmp/urdma
+    tar xzf /tmp/urdma-src.tar.gz -C /tmp/urdma
+    make -C /tmp/urdma test
