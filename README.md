@@ -39,7 +39,7 @@ address space with the NVMe controller and with GPU memory, and the driver
 decides where the queues live. RDMA has no standard hardware interface, so
 such a driver is specific to one NIC family. The first candidate is AMD
 Pensando's ionic, which [rocm-ernic](https://github.com/safl/rocm-ernic)
-emulates and [xnvme-devenv](https://github.com/xnvme/xnvme-devenv) puts in a
+emulates and [systems-devenv](https://github.com/refenv/systems-devenv) puts in a
 QEMU guest next to an emulated GPU and an NVMe controller.
 
 GPU-initiated transfers are also explored: the queues placed in GPU memory,

@@ -11,7 +11,7 @@ RIG ?= urdma-nic
 CIJOE_OUTPUT ?= cijoe-output
 # The guest is started by systems-devenv's rig scripts, which its host container
 # carries along with QEMU, cijoe and the device servers; devenv-* run there
-DEVENV_IMAGE ?= ghcr.io/refenv/systems-devenv/host:v0.17.0
+DEVENV_IMAGE ?= ghcr.io/refenv/systems-devenv/host:v0.18.0
 DEVENV_ENGINE ?= docker
 DEVENV_NAME ?= urdma-devenv-$(notdir $(CURDIR))
 DEVENV_HOME ?= $(CURDIR)/.devenv
