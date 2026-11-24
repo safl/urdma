@@ -1,0 +1,9 @@
+---
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+# Runner labels newer than the actionlint that checks them
+self-hosted-runner:
+  labels:
+  - ubuntu-26.04

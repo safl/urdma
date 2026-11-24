@@ -1,0 +1,68 @@
+---
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+name: docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Grab source
+      uses: actions/checkout@v7.0.0
+
+    - name: Install pipx and Doxygen
+      run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pipx doxygen
+
+    - name: Install the docs tooling
+      run: |
+        pipx install ./docs/tooling
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    - name: Build HTML
+      run: make docs
+
+    - name: Upload the HTML
+      uses: actions/upload-artifact@v7.0.1
+      with:
+        name: docs-html
+        path: docs/_build/html
+        if-no-files-found: error
+
+  # Pushes to main deploy; pull requests and dispatched runs only build
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Download the HTML
+      uses: actions/download-artifact@v8.0.1
+      with:
+        name: docs-html
+        path: html/
+
+    - name: Configure Pages
+      uses: actions/configure-pages@v6
+
+    - name: Upload the Pages artifact
+      uses: actions/upload-pages-artifact@v5
+      with:
+        path: html/
+
+    - id: deployment
+      name: Deploy to GitHub Pages
+      uses: actions/deploy-pages@v5

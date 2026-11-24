@@ -1,0 +1,78 @@
+---
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # A release pull request must hold all of main, as the release is made only from the tree these checks ran on
+  release-ready:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Grab source
+      uses: actions/checkout@v7.0.0
+
+    - name: Require that a release pull request is complete and holds all of main
+      uses: refenv/gha-project-auto-release/ready@v1
+      with:
+        version-file: meson.build
+        version-pattern: "^  version: '([^']+)',$"
+
+  # The pre-commit hooks of 'make format-all': clang-format, YAML, actionlint, black, ruff and REUSE
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Grab source
+      uses: actions/checkout@v7.0.0
+
+    - name: Install pre-commit
+      run: pipx install pre-commit
+
+    - name: Run the hooks on all files
+      run: make format-all
+
+  # One arm64 job builds the header on a second architecture
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04, ubuntu-24.04-arm]
+        cc: [gcc, clang]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Grab source
+      uses: actions/checkout@v7.0.0
+
+    - name: Install packages
+      run: sudo apt-get update && sudo apt-get install -y --no-install-recommends meson ninja-build gcc g++ clang
+
+    - name: Build and test
+      env:
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cc == 'clang' && 'clang++' || 'g++' }}
+      run: make test
+
+  # A meson project taking urdma installed, through urdma.pc, and through a wrap
+  meson-consumer:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Grab source
+      uses: actions/checkout@v7.0.0
+
+    - name: Install packages
+      run: sudo apt-get update && sudo apt-get install -y --no-install-recommends meson ninja-build gcc pkg-config
+
+    - name: Build the consumers
+      run: make consumer

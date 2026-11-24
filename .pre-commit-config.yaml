@@ -1,0 +1,63 @@
+---
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+default_language_version:
+  python: python3
+
+repos:
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: v23.1.5
+  hooks:
+  - id: clang-format
+    name: C-format-clang-format
+    types_or: [c, c++]
+
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.6.0
+  hooks:
+  # pre-commit-hook-yamlfmt only works on valid YAML files
+  - id: check-yaml
+    name: YAML-format-check
+
+- repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
+  rev: 0.2.3
+  hooks:
+  - id: yamlfmt
+    name: YAML-format
+    args:
+    - '--mapping=2'
+    - '--sequence=2'
+    - '--offset=0'
+    - '--width=120'
+    - '--preserve-quotes'
+    types: [file]
+    files: \.(yaml|yml)$
+
+- repo: https://github.com/rhysd/actionlint
+  rev: v1.7.12
+  hooks:
+  - id: actionlint
+    name: GitHub-workflows-lint-actionlint
+
+- repo: https://github.com/psf/black
+  rev: 26.10.1
+  hooks:
+  - id: black
+    name: Python-format-black
+    args: [--line-length=120]
+
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.7.1
+  hooks:
+  - id: ruff
+    name: Python-lint-ruff
+    args: [--fix, --line-length=120]
+
+# Every file says its copyright and license, see REUSE.toml
+- repo: https://github.com/fsfe/reuse-tool
+  rev: v6.2.0
+  hooks:
+  - id: reuse
+    name: REUSE-compliance

@@ -1,0 +1,44 @@
+---
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+name: release
+
+# A commit on main with the subject 'ver: bump to vX.Y.Z' releases X.Y.Z, once the pull request that merged it
+# passed verify on the same tree
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      startsWith(github.event.head_commit.message, 'ver: bump to v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: read
+    steps:
+    - name: Grab source
+      uses: actions/checkout@v7.0.0
+
+    - name: Check the version bump, and that its pull request was tested
+      id: check
+      uses: refenv/gha-project-auto-release/check@v1
+      with:
+        version-file: meson.build
+        version-pattern: "^  version: '([^']+)',$"
+        workflows: verify.yml
+
+    - name: Tag and create the release
+      uses: refenv/gha-project-auto-release/release@v1
+      with:
+        version: ${{ steps.check.outputs.version }}
+        notes-file: ${{ steps.check.outputs.notes-file }}

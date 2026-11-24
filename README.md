@@ -1,12 +1,14 @@
 <!--
+SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+
 SPDX-License-Identifier: BSD-3-Clause
-Copyright (c) Simon Andreas Frimann Lund <os@safl.dk>
 -->
 
 # urdma: RDMA from user space, header-only
 
-**This is an exploration.** There is no code yet, and nothing here is
-settled. The repository records what is being explored and why.
+**This is an exploration.** There is no RDMA code yet, and nothing here is
+settled. The repository records what is being explored and why, and has the
+build, checks, documentation and releases in place for the code to come.
 
 urdma is meant to become a header-only C library for moving data with an RDMA
 NIC, in the style of [uPCIe](https://github.com/safl/upcie),
@@ -43,6 +45,11 @@ QEMU guest next to an emulated GPU and an NVMe controller.
 GPU-initiated transfers are also explored: the queues placed in GPU memory,
 and the GPU writing work requests and ringing the NIC's doorbell, as uPCIe
 does for NVMe.
+
+## Development
+
+Building, testing, the source checks, the documentation and releasing are
+described in the [documentation](https://safl.github.io/urdma/development.html).
 
 ## Licensing
 
