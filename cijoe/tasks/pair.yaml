@@ -1,0 +1,78 @@
+---
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+doc: |
+  Start the guests urdma and peer of the urdma-pair rig, from systems-devenv's host container
+
+  Stops guests left running, stages systems-devenv's guest image and
+  initializes both guests from it. Boots urdma first, as its NIC's server is
+  the manager of rocm-ernic's TCP mesh, which the worker serving peer's NIC
+  connects to. Opens root SSH on both over the image's operator account, gives
+  each NIC its address and checks that the guests reach each other over IP:
+
+    cijoe tasks/pair.yaml --config configs/guest.toml --config rigs/urdma-pair.toml
+
+steps:
+- name: peer_kill
+  uses: systems_devenv.rig_guest_kill
+  with:
+    guest_name: peer
+
+- name: guest_kill
+  uses: systems_devenv.rig_guest_kill
+  with:
+    guest_name: "{{ config.qemu.default_guest }}"
+
+- name: stage_guest
+  uses: system_imaging.diskimage_from_oras
+  with:
+    pattern: "{{ config.qemu.default_systemimage }}"
+
+- name: guest_initialize
+  uses: qemu.guest_initialize
+  with:
+    guest_name: "{{ config.qemu.default_guest }}"
+    system_image_name: "{{ config.qemu.default_systemimage }}"
+
+- name: peer_initialize
+  uses: qemu.guest_initialize
+  with:
+    guest_name: peer
+    system_image_name: "{{ config.qemu.default_systemimage }}"
+
+- name: guest_start
+  uses: systems_devenv.rig_guest_start
+  with:
+    guest_name: "{{ config.qemu.default_guest }}"
+
+- name: peer_start
+  uses: systems_devenv.rig_guest_start
+  target: peer
+  with:
+    guest_name: peer
+
+- name: root_unlock
+  uses: systems_devenv.root_unlock
+
+- name: peer_root_unlock
+  uses: systems_devenv.root_unlock
+  with:
+    root: peer
+    operator: peer_odus
+
+- name: guest_addr
+  run: |
+    ip addr replace {{ config.rig.devices.nic0.transport.guest_addr }} dev {{ config.rig.devices.nic0.transport.netdev }}
+    ip link set {{ config.rig.devices.nic0.transport.netdev }} up
+
+- name: peer_addr
+  target: peer
+  run: |
+    ip addr replace {{ config.rig.guests.peer.devices.nic1.transport.guest_addr }} dev {{ config.rig.guests.peer.devices.nic1.transport.netdev }}
+    ip link set {{ config.rig.guests.peer.devices.nic1.transport.netdev }} up
+
+- name: ping_peer
+  run: |
+    ping -c 1 -w 30 {{ config.rig.guests.peer.devices.nic1.transport.guest_addr.split('/')[0] }}

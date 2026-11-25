@@ -1,0 +1,86 @@
+---
+# SPDX-FileCopyrightText: Simon A. F. Lund <os@safl.dk>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+doc: |
+  Run urdma-bench and perftest between the guests of the urdma-pair rig
+
+  Builds urdma in both guests tasks/pair.yaml started, from the source archive
+  'make source-archive' writes to /tmp/artifacts/urdma-src.tar.gz, then runs
+  each workload with the server in peer and the client in urdma, so the RDMA
+  WRITEs go from one NIC to the other: once with urdma-bench, which verifies
+  the payloads, and once with perftest's ib_write_bw or ib_write_lat, with the
+  same size, iterations and depth. On emulated NICs the bandwidth and latency
+  say nothing about a NIC's performance. scripts/bench_compare.py runs each
+  pair:
+
+    cijoe tasks/bench-pair.yaml --config configs/guest.toml --config rigs/urdma-pair.toml
+
+steps:
+- name: rdma_device
+  run: |
+    rdma link show
+    test -n "$(ls /sys/class/infiniband)"
+
+- name: peer_rdma_device
+  target: peer
+  run: |
+    rdma link show
+    test -n "$(ls /sys/class/infiniband)"
+
+- name: tools
+  run: |
+    command -v meson ninja gcc make ib_write_bw || (apt-get -qy update && DEBIAN_FRONTEND=noninteractive apt-get -qy install --no-install-recommends meson ninja-build gcc g++ make perftest)
+    test -f /usr/include/infiniband/verbs.h || (apt-get -qy update && DEBIAN_FRONTEND=noninteractive apt-get -qy install --no-install-recommends libibverbs-dev pkg-config)
+
+- name: peer_tools
+  target: peer
+  run: |
+    command -v meson ninja gcc make ib_write_bw || (apt-get -qy update && DEBIAN_FRONTEND=noninteractive apt-get -qy install --no-install-recommends meson ninja-build gcc g++ make perftest)
+    test -f /usr/include/infiniband/verbs.h || (apt-get -qy update && DEBIAN_FRONTEND=noninteractive apt-get -qy install --no-install-recommends libibverbs-dev pkg-config)
+
+- name: source_put
+  uses: core.put
+  with:
+    src: /tmp/artifacts/urdma-src.tar.gz
+    dst: /tmp/urdma-src.tar.gz
+
+- name: peer_source_put
+  uses: core.put
+  target: peer
+  with:
+    src: /tmp/artifacts/urdma-src.tar.gz
+    dst: /tmp/urdma-src.tar.gz
+
+- name: build
+  run: |
+    rm -rf /tmp/urdma && mkdir -p /tmp/urdma
+    tar xzf /tmp/urdma-src.tar.gz -C /tmp/urdma
+    make -C /tmp/urdma build MESON_SETUP_ARGS=-Dverbs=enabled
+
+- name: peer_build
+  target: peer
+  run: |
+    rm -rf /tmp/urdma && mkdir -p /tmp/urdma
+    tar xzf /tmp/urdma-src.tar.gz -C /tmp/urdma
+    make -C /tmp/urdma build MESON_SETUP_ARGS=-Dverbs=enabled
+
+- name: write_bw
+  uses: bench_compare
+  with:
+    workload: write-bw
+    size: 65536
+    iters: 1000
+    depth: 128
+    peer: peer
+    peer_addr: "{{ config.rig.guests.peer.devices.nic1.transport.guest_addr.split('/')[0] }}"
+
+- name: write_lat
+  uses: bench_compare
+  with:
+    workload: write-lat
+    size: 2
+    iters: 1000
+    peer: peer
+    peer_addr: "{{ config.rig.guests.peer.devices.nic1.transport.guest_addr.split('/')[0] }}"
