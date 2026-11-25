@@ -62,6 +62,20 @@ the `kvm` group. The staged guest image, about 20 GB with its download, is
 kept in `.devenv/` between runs, or in `DEVENV_HOME` when that is set. CI runs
 the same targets in its `guest` job.
 
+The rig `cijoe/rigs/urdma-pair.toml` boots two guests, `urdma` and `peer`, each
+with an emulated NIC, the two NICs connected through rocm-ernic's TCP mesh and
+their Ethernet on one host bridge, so RDMA WRITEs go from one guest's NIC to the
+other's. `make pair` starts both guests and `make pair-bench` builds urdma in
+both and runs urdma-bench and perftest with the server in `peer` and the client
+in `urdma`:
+
+```bash
+make devenv-verify-pair   # start the host container and both guests, run the workloads between them
+```
+
+The guests take 4 GB of memory and 4 CPUs each. CI runs the same targets in its
+`guest-pair` job.
+
 ## RDMA WRITE workloads with urdma-bench
 
 `urdma-bench` runs the RDMA WRITE workloads of perftest's `ib_write_bw` and

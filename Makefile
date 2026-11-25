@@ -23,7 +23,8 @@ DEVENV_RUN_ARGS ?=
 
 .DEFAULT_GOAL := help
 .PHONY: help build test consumer install format format-all docs docs-serve bump clean \
-	source-archive guest guest-test guest-bench devenv-host devenv-verify devenv-down
+	source-archive guest guest-test guest-bench pair pair-bench devenv-host devenv-verify \
+	devenv-verify-pair devenv-down
 
 help:
 	@echo "urdma:"
@@ -33,7 +34,10 @@ help:
 	@echo "  guest       start the QEMU guest with RIG=$(RIG), in systems-devenv's host container"
 	@echo "  guest-test  build and test urdma in the running guest"
 	@echo "  guest-bench run urdma-bench and perftest in the guest, after guest-test"
+	@echo "  pair        start the two guests of the urdma-pair rig, in systems-devenv's host container"
+	@echo "  pair-bench  build urdma in both and run urdma-bench and perftest between them"
 	@echo "  devenv-verify  source-archive, guest, guest-test and guest-bench, in the host container"
+	@echo "  devenv-verify-pair  source-archive, pair and pair-bench, in the host container"
 	@echo "  devenv-down    remove the host container and the guest in it"
 	@echo "  install     install the headers, urdma.pc and urdma-bench"
 	@echo "  format      run the pre-commit hooks on staged changes"
@@ -70,6 +74,14 @@ guest-bench:
 	cd cijoe && cijoe tasks/bench.yaml --monitor --config configs/guest.toml \
 		--output $(CIJOE_OUTPUT)-bench
 
+pair:
+	cd cijoe && cijoe tasks/pair.yaml --monitor --config configs/guest.toml \
+		--config rigs/urdma-pair.toml --output $(CIJOE_OUTPUT)-pair
+
+pair-bench:
+	cd cijoe && cijoe tasks/bench-pair.yaml --monitor --config configs/guest.toml \
+		--config rigs/urdma-pair.toml --output $(CIJOE_OUTPUT)-bench-pair
+
 # DEVENV_HOME keeps the staged guest image between runs
 devenv-host:
 	mkdir -p $(DEVENV_HOME) $(ARTIFACTS)
@@ -80,6 +92,9 @@ devenv-host:
 
 devenv-verify: source-archive devenv-host
 	$(DEVENV_ENGINE) exec $(DEVENV_NAME) make guest guest-test guest-bench RIG=$(RIG)
+
+devenv-verify-pair: source-archive devenv-host
+	$(DEVENV_ENGINE) exec $(DEVENV_NAME) make pair pair-bench
 
 devenv-down:
 	$(DEVENV_ENGINE) rm -f $(DEVENV_NAME)

@@ -115,6 +115,53 @@ jobs:
         path: cijoe/cijoe-output-*
         if-no-files-found: warn
 
+  # urdma-bench and perftest between two guests, booted with the urdma-pair
+  # rig, whose emulated NICs carry the RDMA WRITEs from one guest to the other
+  guest-pair:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/refenv/systems-devenv/host:v0.19.0
+      options: --privileged --ulimit memlock=-1 -v /mnt:/mnt
+    steps:
+    - name: Grab source
+      uses: actions/checkout@v7.0.0
+
+    - name: Make room on the runner for the guest image and two guests
+      uses: refenv/gha-trim-runner@v1
+      with:
+        need-gib: 40
+
+    - name: Keep the guest image and the guests on /mnt
+      run: |
+        mkdir -p /mnt/system_imaging /mnt/guests
+        ln -sfn /mnt/system_imaging "$HOME/system_imaging"
+        ln -sfn /mnt/guests "$HOME/guests"
+
+    - name: Archive the source
+      run: |
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        make source-archive
+
+    - name: Start the guests
+      run: make pair
+
+    - name: Run urdma-bench and perftest between the guests
+      run: make pair-bench
+
+    - name: Show the guests' serial consoles and the NIC servers' logs
+      if: failure()
+      run: |
+        for g in urdma urdma-peer; do tail -c 20000 "$HOME/guests/$g/serial.output" || true; done
+        for n in 0 1; do tail -c 20000 "$HOME/run/vfio-user-urdma-pair$n.log" || true; done
+
+    - name: Upload the cijoe reports
+      if: always()
+      uses: actions/upload-artifact@v6.0.0
+      with:
+        name: guest-pair-cijoe-output
+        path: cijoe/cijoe-output-*
+        if-no-files-found: warn
+
   # A meson project taking urdma installed, through urdma.pc, and through a wrap
   meson-consumer:
     runs-on: ubuntu-24.04
